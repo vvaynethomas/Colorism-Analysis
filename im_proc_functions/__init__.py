@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import requests
 import cv2
 import pandas as pd
+from im_proc_functions.SkinDetector import skin_detector
 
 
 def list_images(directory):
@@ -14,7 +15,9 @@ def list_images(directory):
         else:
             for path in os.listdir(directory):
                 if path.endswith('.jpg'):
-                    image_list.append(path)
+                    # print(f'directory: {directory}')
+                    # print(f'path: {path}')
+                    image_list.append(os.path.join(directory, path))
     elif isinstance(directory, list):
         for item in directory:
             if isinstance(item, str):
@@ -23,7 +26,7 @@ def list_images(directory):
                 elif item.endswith('/'):
                     for path in os.listdir(item):
                         if path.endswith('.jpg'):
-                            image_list.append(path)
+                            image_list.append(os.path.join(item, path))
     return image_list
 
 
@@ -67,15 +70,16 @@ def scrape_images(site):
 
 
 def detect_face(image_path, store_locally=False, output_directory=""):
-    face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+    print(type(face_cascade))
     image = cv2.imread(image_path)
-    greyscale = cv2.cvtColor(image_path, cv2.COLOR_BGR2GRAY)
+    greyscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     greyscale = cv2.equalizeHist(greyscale)
     detected_faces = face_cascade.detectMultiScale(greyscale, 1.1, 4)
     face_images = []
     i = 0
     for (x, y, w, h) in detected_faces:
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        image = cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
         current_face = image[y:y + h, x:x + w]
         if store_locally:
             if not output_directory:
@@ -86,13 +90,14 @@ def detect_face(image_path, store_locally=False, output_directory=""):
             cv2.imwrite(output_path, current_face)
         face_images.append(current_face)
         i += 1
-    print(f"{str(i)} faces detected in {image.stem}")
+    print(f"{str(i)} faces detected in {os.path.basename(image_path)}")
     return face_images
 
 
-# def skin_or_nothing(image_path):
-#     face_images = detect_face(image_path)
-#     return [SkinDetector.skin_detector.process(image) for image in face_images]
+def skin_or_nothing(image_path):
+    face_images = detect_face(image_path)
+    print(len(face_images))
+    return [skin_detector.process(image) for image in face_images]
 
 
 def add_greyscale_stats(image_list, df=None):
@@ -105,14 +110,13 @@ def add_greyscale_stats(image_list, df=None):
     for image in image_list:
         greyscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         cur_mean = np.true_divide(greyscale.sum(1), (greyscale != 0).sum(1))
-        min = np.min(greyscale, where=greyscale != 0)
-        max = np.max(greyscale, where=greyscale != 0)
+        cur_min = np.min(greyscale, where=greyscale != 0)
+        cur_max = np.max(greyscale, where=greyscale != 0)
         zipped = zip(column_names, [cur_mean, min, max])
         output_dict = dict(zipped)
         new_data.append(output_dict)
     df = df.append(new_data, True)
     return df
-
 
 # if __name__ == "__main__":
 #     fileDir = os.path.dirname(os.path.realpath('__file__'))
