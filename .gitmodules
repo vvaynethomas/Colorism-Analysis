@@ -1,0 +1,3 @@
+[submodule "SkinDetector"]
+	path = SkinDetector
+	url = https://github.com/WillBrennan/SkinDetector
