@@ -5,6 +5,7 @@ import requests
 import cv2
 import pandas as pd
 from scipy import *
+from SkinDetector import skin_detector
 
 
 def list_images(directory):
