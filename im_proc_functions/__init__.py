@@ -68,6 +68,13 @@ def scrape_images(site):
                     print("something went wrong with this one")
                     continue
 
+def crop_by_scale(img, scale=1.0):
+    center_x, center_y = img.shape[1] / 2, img.shape[0] / 2
+    width_scaled, height_scaled = img.shape[1] * scale, img.shape[0] * scale
+    left_x, right_x = center_x - width_scaled / 2, center_x + width_scaled / 2
+    top_y, bottom_y = center_y - height_scaled / 2, center_y + height_scaled / 2
+    img_cropped = img[int(top_y):int(bottom_y), int(left_x):int(right_x)]
+    return img_cropped
 
 def detect_face(image_path, store_locally=False, output_directory=""):
     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
@@ -81,6 +88,7 @@ def detect_face(image_path, store_locally=False, output_directory=""):
     for (x, y, w, h) in detected_faces:
         # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
         current_face = image[y:y + h, x:x + w]
+        current_face = crop_by_scale(current_face, scale = 0.7)
         if store_locally:
             if not output_directory:
                 output_directory = os.path.join(os.getcwd(), image.stem)
@@ -103,15 +111,17 @@ def add_greyscale_stats(image_list, df=None):
     if df:
         column_names = list(df)
     else:
-        column_names = ['average', 'min (>0)', 'max']
+        column_names = ['average', 'min (>0)', 'max (<255']
         df = pd.DataFrame(columns=column_names)
     new_data = []
     for image in image_list:
         greyscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        cur_mean = np.true_divide(greyscale.sum(1), (greyscale != 0).sum(1))
-        cur_min = np.min(greyscale, where=greyscale != 0)
-        cur_max = np.max(greyscale, where=greyscale != 0)
-        zipped = zip(column_names, [cur_mean, min, max])
+        cur_mean = greyscale[np.nonzero(greyscale)].mean()
+        cur_min = greyscale[np.nonzero(greyscale)].min()
+        cur_max = greyscale[np.nonzero(greyscale)].max()
+        print(column_names)
+        print([cur_mean, cur_min, cur_max])
+        zipped = zip(column_names, [cur_mean, cur_min, cur_max])
         output_dict = dict(zipped)
         new_data.append(output_dict)
     df = df.append(new_data, True)
