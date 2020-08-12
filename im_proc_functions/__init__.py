@@ -96,7 +96,6 @@ def detect_face(image_path, store_locally=False, output_directory=""):
 
 def skin_or_nothing(image_path):
     face_images = detect_face(image_path)
-    print(len(face_images))
     return [skin_detector.process(image) for image in face_images]
 
 
