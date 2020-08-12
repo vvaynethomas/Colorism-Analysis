@@ -1,4 +1,3 @@
-import imageio
 import os
 import numpy as np
 from bs4 import BeautifulSoup
@@ -6,28 +5,6 @@ import requests
 import cv2
 import pandas as pd
 from scipy import *
-import SkinDetector
-
-
-def get_filepaths(directory):
-    file_paths = []  # List which will store all of the full filepaths.
-
-    # Walk the tree.
-    if isinstance(directory, list):
-        for folder in directory:
-            for root, directories, files in os.walk(folder):
-                for filename in files:
-                    # Join the two strings in order to form the full filepath.
-                    filepath = os.path.join(root, filename)
-                    file_paths.append(filepath)  # Add it to the list.
-    else:
-        for root, directories, files in os.walk(directory):
-            for filename in files:
-                # Join the two strings in order to form the full filepath.
-                filepath = os.path.join(root, filename)
-                file_paths.append(filepath)  # Add it to the list.
-
-    return file_paths  # Self-explanatory.
 
 
 def list_images(directory):
@@ -35,8 +12,8 @@ def list_images(directory):
     if isinstance(directory, str):
         if directory.endswith('.jpg'):
             image_list.append(directory)
-        elif directory.endswith('/'):
-            for path in get_filepaths(directory):
+        else:
+            for path in os.listdir(directory):
                 if path.endswith('.jpg'):
                     image_list.append(path)
     elif isinstance(directory, list):
@@ -45,7 +22,7 @@ def list_images(directory):
                 if item.endswith('.jpg'):
                     image_list.append(item)
                 elif item.endswith('/'):
-                    for path in get_filepaths(item):
+                    for path in os.listdir(item):
                         if path.endswith('.jpg'):
                             image_list.append(path)
     return image_list
@@ -114,9 +91,9 @@ def detect_face(image_path, store_locally=False, output_directory=""):
     return face_images
 
 
-def skin_or_nothing(image_path):
-    face_images = detect_face(image_path)
-    return [SkinDetector.skin_detector.process(image) for image in face_images]
+# def skin_or_nothing(image_path):
+#     face_images = detect_face(image_path)
+#     return [SkinDetector.skin_detector.process(image) for image in face_images]
 
 
 def add_greyscale_stats(image_list, df=None):
@@ -139,4 +116,9 @@ def add_greyscale_stats(image_list, df=None):
 
 
 if __name__ == "__main__":
-    image_list = list_images(os.getcwd() + '/Images')
+    fileDir = os.path.dirname(os.path.realpath('__file__'))
+    print(fileDir)
+    image_directory = os.path.join(fileDir, 'Images')
+    print(image_directory)
+    image_list = list_images(image_directory)
+    print(image_list)
