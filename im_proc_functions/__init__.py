@@ -79,7 +79,7 @@ def detect_face(image_path, store_locally=False, output_directory=""):
     face_images = []
     i = 0
     for (x, y, w, h) in detected_faces:
-        image = cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        # cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
         current_face = image[y:y + h, x:x + w]
         if store_locally:
             if not output_directory:
