@@ -4,8 +4,6 @@ from bs4 import BeautifulSoup
 import requests
 import cv2
 import pandas as pd
-from scipy import *
-from SkinDetector import skin_detector
 
 
 def list_images(directory):
@@ -116,10 +114,10 @@ def add_greyscale_stats(image_list, df=None):
     return df
 
 
-if __name__ == "__main__":
-    fileDir = os.path.dirname(os.path.realpath('__file__'))
-    print(fileDir)
-    image_directory = os.path.join(fileDir, 'Images')
-    print(image_directory)
-    image_list = list_images(image_directory)
-    print(image_list)
+# if __name__ == "__main__":
+#     fileDir = os.path.dirname(os.path.realpath('__file__'))
+#     print(fileDir)
+#     image_directory = os.path.join(fileDir, 'Images')
+#     print(image_directory)
+#     image_list = list_images(image_directory)
+#     print(image_list)
