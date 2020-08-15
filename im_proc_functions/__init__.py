@@ -158,7 +158,8 @@ def batch_process(directory=''):
     stat_lists = list(map(get_greyscale_stats, face_list))
     im_names_list = [os.path.basename(path).split('.')[0] for path in im_path_list]
     names_list = [' '.join(im_name.split('%20')) for im_name in im_names_list]
-    path_df = pd.DataFrame(names_list, columns=['image_name'])
+    nam_im_tuples = zip(names_list,face_list)
+    path_df = pd.DataFrame(nam_im_tuples, columns=['name', 'face_image'])
     colnames2 = ['mean', 'minimum', 'maximum', 'median', 'mode']
     stats_df = pd.DataFrame(stat_lists, columns=colnames2)
     fin_df = pd.concat([path_df,stats_df], axis = 1)
