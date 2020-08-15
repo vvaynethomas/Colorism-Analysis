@@ -83,6 +83,9 @@ def extract_face(image_path, store_locally=False, output_directory="", group=Fal
     # print(type(face_cascade))
     try:
         image = cv2.imread(image_path)
+        if image.shape[0] < 120 or image.shape[1] < 120:
+            print(f'resolution for {image_path} is too low: {image.shape}')
+            return np.nan
         greyscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         greyscale = cv2.equalizeHist(greyscale)
         detected_faces = face_cascade.detectMultiScale(greyscale, 1.1, 4)
@@ -134,6 +137,7 @@ def add_greyscale_stats(image_list, df=None):
 
 def get_greyscale_stats(image):
     if not isinstance(image, (np.ndarray)):
+        print('no image passed, storing NAN')
         return [np.nan, np.nan, np.nan, np.nan, np.nan]
     else:
         greyscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -142,7 +146,11 @@ def get_greyscale_stats(image):
         cur_max = greyscale[np.nonzero(greyscale)].max()
         cur_median = np.median(greyscale[np.nonzero(greyscale)])
         cur_mode = stats.mode(greyscale[np.nonzero(greyscale)], axis = None)[0][0]
-        return [cur_mean, cur_min, cur_max, cur_median, cur_mode]
+        if cur_mean < 30 or cur_mean > 230 or cur_mode < 30 or cur_mode > 230:
+            print('face detection error, storing NAN')
+            return [np.nan, np.nan, np.nan, np.nan, np.nan]
+        else:
+            return [cur_mean, cur_min, cur_max, cur_median, cur_mode]
 
 def batch_process(directory=''):
     im_path_list = list_images(directory)
