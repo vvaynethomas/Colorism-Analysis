@@ -4,3 +4,8 @@ __pycache__/
 .Rhistory
 .RData
 .Rproj.user/
+/Images/
+/reference_3.jpg
+/reference_2.jpg
+/reference_1.jpg
+/face_stats.csv
