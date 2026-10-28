@@ -1,37 +1,44 @@
 # Colorism-Analysis
 
-This repository is an exploratory image-processing project whose stated aim is to examine colorism using images of business executives. The notebooks and code do not define a testable hypothesis or measure discrimination, representation, or social outcomes. What they currently calculate is a set of grayscale pixel-intensity statistics for some detected face crops. Those statistics are not measurements of a person's identity or a validated measure of skin tone, and they cannot establish whether colorism occurred.
+An exploratory Python and R project motivated by a question about colorism among business executives: could portrait analysis help investigate differences in apparent skin tone?
 
-## Workflow and files
+The implemented work explores a narrower technical question: **how can face detection, cropping, and grayscale statistics summarize portrait images?** It connects web-table collection, image acquisition, OpenCV processing, and distribution plots. It is a useful starting point for exploring that workflow and its measurement limits, not a completed study of colorism.
 
-The checked-in material reflects a partially disconnected workflow:
+**Start with [the batch analysis notebook](batch_colorism.ipynb)** for the main workflow, then read [the image-processing functions](im_proc_functions/__init__.py) to see exactly what is measured. You can browse the source without downloading images or running the notebooks.
 
-1. `image_scraper.ipynb` reads the current Wikipedia page titled [List of chief executive officers](https://en.wikipedia.org/wiki/List_of_chief_executive_officers) into a table and can write it as `df.csv`. The notebook does not record a retrieval date or a frozen source copy.
-2. `image_scraper.R` reads a separate CSV from a machine-specific `D:/Denver/.../df.csv` path, searches Bing Images for each listed executive, and downloads a JPEG into `Images/`. The script does not save the selected image's source URL, search date, or rights information. The checked-in `im_proc_functions/df.csv` is not at the path the script expects.
-3. `im_proc_functions/__init__.py` enumerates `.jpg` files, detects faces with OpenCV's Haar cascade, crops the center 60% of each detected face box, and calculates grayscale statistics. Images smaller than 120 pixels in either dimension are rejected. If multiple faces are detected, the function chooses one at random. It returns missing values when detection fails or when the calculated mean or mode falls outside the code's 30–230 range.
-4. `batch_colorism.ipynb` runs the image processing over `Images/`, drops missing results, displays distributions, and writes `ceo_df.csv`. `testing_no_skin.ipynb` is an exploratory single-image test of the same detector and statistics. `image_scraper.ipynb` also contains a plotting workflow over the image files.
+## Explore the repository
 
-The statistics are mean, minimum, maximum, median, and mode of nonzero grayscale values in the crop. The face detector uses a grayscale, histogram-equalized copy of the image; the reported statistics are calculated separately from the original crop after BGR-to-grayscale conversion. The crop is not a skin-only segmentation: it can include hair, background, and other non-skin pixels. No color calibration, lighting normalization, or validated skin-tone annotation is implemented.
+| File | What to look for |
+| --- | --- |
+| [batch_colorism.ipynb](batch_colorism.ipynb) | Batch processing, missing-value filtering, descriptive summaries, and distribution plots of mean, median, and mode. |
+| [im_proc_functions/__init__.py](im_proc_functions/__init__.py) | JPEG discovery, face detection, center cropping, grayscale statistics, and assembly of the results table. |
+| [testing_no_skin.ipynb](testing_no_skin.ipynb) | A single-image exploration of detection, cropping, and the same statistics. |
+| [image_scraper.ipynb](image_scraper.ipynb) | Collection of an executive roster from Wikipedia, plus exploratory image processing and plotting. |
+| [image_scraper.R](image_scraper.R) | An image-acquisition script using Bing search results and local file paths. |
 
-## Data provenance and reproduction
+## Analysis workflow
 
-Portraits and derived face-level data are intentionally excluded from the current repository tree because image sources, reuse permissions, and privacy expectations were not recorded. This includes the scraped `Images/` collection, the three root-level reference portraits, `ceo_df.csv` (which contains names and serialized face pixels), and saved notebook outputs that displayed portraits or face crops. The notebooks' code remains as a record of the prior exploratory workflow; it requires separately sourced, appropriately licensed local inputs to run. Generated image folders and derived exports are ignored to reduce accidental re-addition.
+1. **Collect a roster.** The Python scraper reads the [Wikipedia list of chief executive officers](https://en.wikipedia.org/wiki/List_of_chief_executive_officers) into a table and can export `df.csv`. The separate R script searches for portraits and downloads JPEGs.
+2. **Detect and crop.** The processing module reads `.jpg` files from a local directory, rejects images smaller than 120 pixels in either dimension, and uses OpenCV's frontal-face Haar cascade on a histogram-equalized grayscale copy. It selects a detected face at random when there are multiple detections and keeps the central 60% of the face box in each dimension.
+3. **Summarize pixels.** The selected crop is converted from its original BGR values to grayscale. The code calculates mean, minimum, maximum, median, and mode over nonzero pixel values. Detection failures and crops whose mean or mode falls outside 30-230 yield missing statistics.
+4. **Explore distributions.** The batch notebook drops missing rows, summarizes the retained values, plots distributions, and can export `ceo_df.csv`. The returned table also includes names and face-image arrays; it is not an anonymous aggregate.
 
-Previously saved notebook outputs reported different retained sample counts across runs. Those outputs and the face-level CSV have been removed from the current tree, were not independently reproduced, and should not be treated as validated results. The function's random choice when an image contains multiple detected faces is one source of run-to-run variation.
+The main tools are **pandas, NumPy, OpenCV, SciPy, Matplotlib, and seaborn**, with **rvest and tidyverse** for the R acquisition script. Additional exploratory cells use Beautiful Soup, requests, scikit-image, and scikit-learn.
 
-An end-to-end clean rerun has not been established. The R script depends on an external, machine-specific CSV path, and the repository has no dependency or environment lock file. The image acquisition URLs, dates, and source files used for prior outputs are not recorded, so the original inputs cannot be reconstructed from the repository alone. The project also declares a `SkinDetector` Git submodule in `.gitmodules`; its role in the notebook workflow is not documented.
+## Reading and reproduction
 
-## Interpretation, limitations, and responsible use
+**This is a source-first exploration, not a ready-to-run pipeline.** Portrait inputs and the derived face-level export are not included, and there is no pinned dependency environment or verified clean-run procedure.
 
-- Search-result images can vary in lighting, exposure, white balance, camera, image processing, resolution, compression, pose, and background. These factors can change pixel intensity independently of a person's skin.
-- Face detection and center cropping are imperfect; they do not guarantee that the crop contains only a face or skin. No manual quality review, detector validation, measurement-error analysis, or justification for the hard-coded intensity thresholds is recorded.
-- The source roster and image-selection process do not define a sampling frame, inclusion criteria, comparison group, or representative population. The available files should not be treated as a complete or unbiased sample of executives.
-- A grayscale intensity statistic is not a person's race, ethnicity, or identity. The project does not infer those sensitive traits, and it does not implement text classification or skin-tone classification.
-- Colorism concerns social treatment and outcomes. Image pixel values alone do not measure colorism or demonstrate discrimination, causation, or any group's characteristics.
-- Image permissions, licensing, privacy expectations, and suitability for redistribution have not been resolved. The current tree excludes the portraits and face-level export rather than asserting that they were cleared for reuse. No new people have been scraped for this documentation.
+For local experimentation, review the notebook cells before running them: acquisition cells make network requests, and export cells write files. Supply separately sourced images with appropriate permissions and privacy safeguards; do not assume public search results are cleared for reuse or redistribution.
 
-## Lessons and proposal for future work
+The batch notebook expects an `Images/` directory, while later demonstration cells reference additional local portraits. The R script uses machine-specific absolute paths that must be adapted; the Python roster export does not automatically connect to those paths. Source-image URLs and acquisition dates are not recorded, so the original inputs cannot be reconstructed from this repository alone. Older library calls may also need adaptation for a current environment.
 
-The current workflow is useful as a record of an exploratory coding exercise, but its data lineage, sampling decisions, and measurements are not sufficient for demographic or social conclusions. A future study should first define a narrow, ethical, testable research question and a justified sampling frame; document permitted image sources, acquisition dates, and reuse terms; and assess whether appropriately calibrated, validated measurements are possible under controlled or comparable imaging conditions. Any analysis of colorism would also need relevant social outcomes and a defensible design, not just image intensity. These are proposals for separately reviewed future work, not results or validation claimed by this repository.
+## What the measurements can and cannot tell us
 
-**History note:** this change excludes the assets from the current tree, but does not rewrite earlier Git commits. Earlier repository history, existing clones, forks, or cached copies may still contain the files. Removal from history would require a separate, coordinated repository-owner decision.
+The code demonstrates a route from image files to descriptive pixel statistics. It does **not** establish a validated skin-tone measure or a finding about colorism.
+
+- A center crop is not skin segmentation: hair, background, and other non-skin pixels can affect the statistics. Lighting, exposure, pose, compression, and camera processing also change grayscale intensity. Histogram equalization is used for detection, not to calibrate the measured crop.
+- The workflow has no validated sampling frame, comparison group, detector-quality assessment, or justification for its intensity thresholds. Random face selection can change retained images and summaries between runs.
+- Pixel intensity does not identify race or ethnicity, and the project does not measure discrimination or social outcomes. Claims about colorism would require a defined research question, validated measurements, an appropriate study design, and relevant outcome data.
+
+The central takeaway is methodological: producing a numeric image summary is different from establishing what that number means.
