@@ -1,11 +1,24 @@
+# images and run outputs stay local
+data/images/
+data/fairface/
+outputs/
+*.jpg
+*.jpeg
+
+# Python
 __pycache__/
 *.py[cod]
+.venv/
+venv/
+.pytest_cache/
 .ipynb_checkpoints/
+
+# R
 .Rhistory
 .RData
 .Rproj.user/
-/Images/
-/reference_3.jpg
-/reference_2.jpg
-/reference_1.jpg
-/face_stats.csv
+
+# editors
+.idea/
+.vscode/
+.DS_Store
