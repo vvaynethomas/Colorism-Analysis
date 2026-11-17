@@ -48,6 +48,28 @@ def crop_by_scale(img, scale=1.0):
                int(center_x - half_w):int(center_x + half_w)]
 
 
+def detect_faces(image):
+    """Return ``(x, y, w, h)`` boxes of frontal faces in a BGR image.
+
+    Runs OpenCV's Haar cascade on a histogram-equalised grayscale copy.
+    """
+    greyscale = cv2.equalizeHist(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+    return [tuple(int(v) for v in box) for box in _FACE_CASCADE.detectMultiScale(greyscale, 1.1, 4)]
+
+
+def crop_face(image, box, scale=FACE_SCALE):
+    """Cut the face box out of ``image`` and keep its central ``scale`` fraction."""
+    x, y, w, h = box
+    return crop_by_scale(image[y:y + h, x:x + w], scale=scale)
+
+
+def face_pixels(image):
+    """Return the grayscale values that the statistics are computed from: the nonzero
+    pixels of a BGR crop, as a flat array."""
+    greyscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    return greyscale[np.nonzero(greyscale)]
+
+
 def extract_face(image_path, store_locally=False, output_directory='', group=False):
     """Return the cropped BGR face from ``image_path``, or NaN when none can be extracted.
 
@@ -63,10 +85,7 @@ def extract_face(image_path, store_locally=False, output_directory='', group=Fal
         print(f'resolution for {image_path} is too low: {image.shape}')
         return np.nan
 
-    greyscale = cv2.equalizeHist(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
-    detected_faces = _FACE_CASCADE.detectMultiScale(greyscale, 1.1, 4)
-    face_images = [crop_by_scale(image[y:y + h, x:x + w], scale=FACE_SCALE)
-                   for (x, y, w, h) in detected_faces]
+    face_images = [crop_face(image, box) for box in detect_faces(image)]
     if not face_images:
         print(f'no face detected in {image_path}, storing NAN')
         return np.nan
@@ -93,8 +112,7 @@ def get_greyscale_stats(image):
     if not isinstance(image, np.ndarray):
         print('no image passed, storing NAN')
         return missing
-    greyscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    pixels = greyscale[np.nonzero(greyscale)]
+    pixels = face_pixels(image)
     cur_mean = pixels.mean()
     cur_mode = stats.mode(pixels, axis=None, keepdims=False).mode
     low, high = VALID_RANGE
