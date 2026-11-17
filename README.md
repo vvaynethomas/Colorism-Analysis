@@ -9,6 +9,28 @@ the chief executives listed on Wikipedia, and the same command runs on any folde
 including a labelled reference set such as FairFace, so the executive numbers can be put next
 to a known mix of skin tones.
 
+## How it works
+
+![The pipeline run step by step on one sample image: original, detected face box, face crop, pixel mask, grayscale pixels, and the intensity histogram with mean, median and mode](figures/walkthrough.png)
+
+The figure is the package's own code run on scikit-image's `astronaut` sample (a NASA
+public-domain photo); the numbers in panel 6 are the pipeline's output for that example.
+
+1. **Original.** Any `.jpg` at least 120 px on each side.
+2. **Face box.** OpenCV's frontal-face Haar cascade runs on a histogram-equalised grayscale
+   copy (`detect_faces`). The dashed square is the central 60% of the box in each dimension.
+3. **Face crop.** `crop_face` keeps that central square, which drops hair, ears and
+   background and leaves forehead, eyes, cheeks, nose and mouth.
+4. **Pixel mask.** Every nonzero pixel of the crop is counted (`face_pixels`); everything
+   else in the image is ignored.
+5. **Grayscale.** The counted pixels are converted to luminance, 0 (black) to 255 (white).
+6. **Statistics.** `get_greyscale_stats` summarises them as mean, minimum, maximum, median
+   and mode. A crop whose mean or mode falls outside 30-230 is treated as a false detection
+   and dropped.
+
+`python scripts/make_walkthrough.py photo.jpg --out figures/my_walkthrough.png` draws the
+same figure for any portrait.
+
 ## Findings
 
 ![Histograms of mean, median and modal face-crop intensity for 153 executive portraits](figures/executives_distributions.png)
@@ -37,7 +59,7 @@ lighting, exposure and editing of each photo. That is why the pipeline is built 
 comparing distributions: run it unchanged on a reference set with known group labels (below)
 and the executive distribution has a scale to be read against.
 
-## How it works
+## From roster to report
 
 1. **Roster.** [`data/executives.csv`](data/executives.csv) is the table from Wikipedia's
    [List of chief executive officers](https://en.wikipedia.org/wiki/List_of_chief_executive_officers)
@@ -46,13 +68,9 @@ and the executive distribution has a scale to be read against.
 2. **Portraits.** [`scripts/fetch_portraits.R`](scripts/fetch_portraits.R) defines
    `fetch_portrait(query)`, which saves the first downloadable `.jpg` from a Bing Images search
    to `data/images/<query>.jpg`.
-3. **Face crop.** [`colorism/faces.py`](colorism/faces.py) skips images under 120 px, runs
-   OpenCV's frontal-face Haar cascade on a histogram-equalised grayscale copy, and keeps the
-   central 60% of the face box in each dimension, which drops hair, ears and background.
-4. **Statistics.** The colour crop is converted to grayscale and its nonzero pixels are
-   summarised as mean, minimum, maximum, median and mode. A crop whose mean or mode is
-   outside 30-230 is almost always a false detection and is discarded.
-5. **Report.** [`colorism/report.py`](colorism/report.py) writes the summary table, the
+3. **Face statistics.** [`colorism/faces.py`](colorism/faces.py) runs the steps in the
+   figure above on every image.
+4. **Report.** [`colorism/report.py`](colorism/report.py) writes the summary table, the
    histograms above, and, given group labels, a per-group table and box plot.
 
 ## Getting images
@@ -68,13 +86,6 @@ purrr::walk(utils::URLdecode(roster$Executive), fetch_portrait)
 Look through `data/images/` afterwards and delete any result that is not a portrait of the
 right person; image search gets a few wrong.
 
-**FairFace (labelled reference set).** [FairFace](https://github.com/joojs/fairface) is a
-face dataset balanced across seven race groups, released under CC BY 4.0
-(Kärkkäinen and Joo, WACV 2021). From its README, download the *Padding = 0.25* image archive
-(`fairface-img-margin025-trainval.zip`) and the validation labels (`fairface_label_val.csv`),
-then unpack them so that you have `data/fairface/val/*.jpg` and
-`data/fairface/fairface_label_val.csv`.
-
 **Any folder of `.jpg` files** works the same way; name files however you like.
 
 ## Running it
@@ -86,10 +97,6 @@ pytest                                   # synthetic end-to-end test, no images 
 
 # executive portraits
 python -m colorism data/images --title "Executive portraits"
-
-# FairFace validation set, compared by race label
-python -m colorism data/fairface/val --labels data/fairface/fairface_label_val.csv \
-    --group race --out outputs/fairface
 ```
 
 Each run writes to `outputs/` (or `--out`): `image_stats.csv` (one row per image),
@@ -100,6 +107,32 @@ Each run writes to `outputs/` (or `--out`): `image_stats.csv` (one row per image
 interactively: one image through detection and cropping, the whole folder, every crop placed
 on the intensity scale, and the group comparison.
 
+## Run the group comparison yourself
+
+[FairFace](https://github.com/joojs/fairface) (Kärkkäinen and Joo, WACV 2021; CC BY 4.0) is a
+face dataset balanced across seven race groups, each image labelled with race, gender and
+age. Running the pipeline on it gives the intensity scale the executive numbers are read
+against.
+
+1. From the links in the FairFace README, download the *Padding = 0.25* image archive
+   (`fairface-img-margin025-trainval.zip`) and the validation labels
+   (`fairface_label_val.csv`).
+2. Unpack them so that you have `data/fairface/val/*.jpg` and
+   `data/fairface/fairface_label_val.csv`.
+3. Run:
+
+   ```bash
+   python -m colorism data/fairface/val --labels data/fairface/fairface_label_val.csv \
+       --group race --out outputs/fairface --title "FairFace validation set"
+   ```
+
+The run covers the 10,954 validation images and writes to `outputs/fairface/`:
+`image_stats.csv` with each image's statistics and labels, `summary.csv` and `distributions.png` for the whole set, `by_race.csv` with count, mean, sd
+and quartiles of face-crop intensity for each of the seven groups (ordered from darkest to
+lightest median), and `by_race.png`, a box plot of the same. `--group gender` or
+`--group age` compares by the other labels. Put the executive medians from the Findings
+table next to `by_race.csv` to place the executive distribution on that scale.
+
 ## Layout
 
 ```
@@ -108,7 +141,7 @@ colorism/            pipeline package (faces.py: detection and statistics; repor
 data/executives.csv  Wikipedia CEO roster, August 2020
 figures/             figures shown in this README
 notebooks/           walkthrough notebook
-scripts/             roster and portrait download helpers
+scripts/             roster and portrait download helpers, walkthrough figure
 tests/               pytest suite with synthetic images
 ```
 
